@@ -2,7 +2,7 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 COPY app-node/package*.json ./
-RUN npm ci
+RUN npm install
 COPY app-node/src/ ./src/
 
 FROM node:20-alpine AS runtime

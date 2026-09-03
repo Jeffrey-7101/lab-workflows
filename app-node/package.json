@@ -1,0 +1,15 @@
+{
+  "name": "app-node",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini proyecto Node.js usado como conejillo de indias para los ejemplos de GitHub Actions en samples-lab1.",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

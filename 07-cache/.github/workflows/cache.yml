@@ -1,0 +1,84 @@
+name: 07 - Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-con-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Clave del cache: incluye hash del package-lock.json
+      # Si el lockfile cambia, se genera una nueva entrada (miss).
+      # restore-keys: si la clave exacta no existe, busca el prefijo mas cercano.
+      - name: Cache de node_modules
+        id: cache-node
+        uses: actions/cache@v4
+        with:
+          path: app-node/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('app-node/package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+            node-modules-
+
+      - name: Mostrar hit/miss del cache
+        env:
+          CACHE_HIT: ${{ steps.cache-node.outputs.cache-hit }}
+          CACHE_KEY: ${{ steps.cache-node.outputs.cache-primary-key }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            echo "CACHE HIT con key: $CACHE_KEY"
+          else
+            echo "CACHE MISS, instalando dependencias"
+          fi
+
+      - name: Instalar dependencias
+        working-directory: app-node
+        run: |
+          if [ -d node_modules ]; then
+            echo "node_modules ya existe del cache"
+          else
+            echo "instalando via npm ci"
+            npm ci
+          fi
+
+      - name: Tests
+        working-directory: app-node
+        run: npm test
+
+      - name: Mostrar tamano del node_modules
+        working-directory: app-node
+        run: du -sh node_modules
+
+  # Segundo job: solo corre en el push a main (no en dispatch).
+  # Reutiliza el cache via la misma key.
+  test-reutiliza-cache:
+    runs-on: ubuntu-latest
+    needs: test-con-cache
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reutilizar cache
+        id: cache-node
+        uses: actions/cache@v4
+        with:
+          path: app-node/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('app-node/package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+            node-modules-
+
+      - name: Mostrar hit
+        run: echo "cache-hit=${{ steps.cache-node.outputs.cache-hit }}"
+
+      - name: Tests sin reinstalar
+        working-directory: app-node
+        run: |
+          if [ ! -d node_modules ]; then
+            npm ci
+          fi
+          npm test

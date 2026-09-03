@@ -1,0 +1,78 @@
+name: 08 - Artifacts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generar archivos de salida
+        run: |
+          mkdir -p dist reports
+          echo "build v1.0.0"                              > dist/build.log
+          echo "started: $(date)"                          >> dist/build.log
+          echo '{"tests": 2, "passed": 2, "failed": 0}'    > reports/coverage.json
+          echo "Test 1 OK"                                  > reports/test-1.txt
+          echo "Test 2 OK"                                  > reports/test-2.txt
+          ls -R dist reports
+
+      - name: Subir artefacto individual (build.log)
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: dist/build.log
+          retention-days: 7
+
+      - name: Subir directorio completo (reports/)
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Subir multiple paths (globs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: outputs-completos
+          path: |
+            dist/**
+            reports/**
+          retention-days: 14
+
+  consumir:
+    needs: generar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar artefacto individual
+        uses: actions/download-artifact@v4
+        with:
+          name: build-log
+          path: ./descargados/build
+
+      - name: Descargar directorio completo
+        uses: actions/download-artifact@v4
+        with:
+          name: test-reports
+          path: ./descargados/reports
+
+      - name: Descargar todos los artefactos
+        uses: actions/download-artifact@v4
+        with:
+          path: ./descargados/todos
+          # sin name: descarga todos los del run
+
+      - name: Mostrar lo descargado
+        run: |
+          echo "=== build-log ==="
+          cat descargados/build/build.log
+          echo ""
+          echo "=== test-reports ==="
+          ls -R descargados/reports
+          echo ""
+          echo "=== todos ==="
+          ls -R descargados/todos

@@ -7,7 +7,9 @@ COPY app-node/src/ ./src/
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
-COPY --from=build /app/node_modules ./node_modules
+#COPY --from=build /app/node_modules ./node_modules
+#package.json no tiene dependencias, por lo que no es necesario copiar node_modules
+
 COPY --from=build /app/src ./src
 #Definir un usuario no root para ejecutar la aplicación
 USER node
